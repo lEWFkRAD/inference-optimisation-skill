@@ -124,8 +124,21 @@ def on_ac():
         if sys.platform == "darwin":
             return "AC Power" in subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True).stdout
         import glob
-        vals = [open(p).read().strip() for p in glob.glob("/sys/class/power_supply/*/online")]
-        return not vals or "1" in vals
+        supplies = []
+        for d in glob.glob("/sys/class/power_supply/*"):
+            try:
+                kind = open(d + "/type").read().strip()
+                online = open(d + "/online").read().strip() if os.path.exists(d + "/online") else ""
+                status = open(d + "/status").read().strip() if os.path.exists(d + "/status") else ""
+            except OSError:
+                continue
+            supplies.append((kind, online, status))
+        if any(k in ("Mains", "USB") and o == "1" for k, o, _ in supplies):
+            return True
+        batteries = [st for k, _, st in supplies if k == "Battery"]
+        # No battery means a desktop: USB-C/UCSI ports report online=0 when nothing is charging through them,
+        # which is not "on battery". With a battery, trust its status.
+        return not batteries or any(st != "Discharging" for st in batteries)
     except Exception:
         return True
 
