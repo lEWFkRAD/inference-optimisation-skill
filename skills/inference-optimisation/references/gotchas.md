@@ -10,6 +10,8 @@ These were found the hard way. Versions matter; re-check on newer releases.
 - **Very large images can crash vision encoders.** Cap the longest edge.
 - **Gateway or proxy timeouts** (often 600 s) cut off long-context tests. Test against the engine directly. Retry only on dropped connections, never on timeouts.
 - **Shells and agents:** `pkill -f pattern` can kill the shell that runs it, and `pgrep -f` can wait on itself. Kill by PID.
+- **Supervisors bring production back mid-run.** Stopping the production server is not enough when a unit restart policy, a dependent unit, or a health watchdog restarts it. It takes the port back, the candidate fails to bind, and the bench quietly measures production. On one box this voided five runs of a sweep; a runtime mask stopped systemd but not a root watchdog, which needed its own hold file. Before each run, check that the port is free after the stop and that the server answering is the one you launched (PID or container ID). Make the run fail loudly if not.
+- **Benching while real users are on the server is noise, not data.** The same config on a live server read 104, 302 and 119 tok/s c1 within 15 minutes. Drain or pause traffic first.
 - **Agent restarts** kill child processes. Detach long jobs (`setsid nohup … & disown`) and make them resumable.
 
 ## vLLM
